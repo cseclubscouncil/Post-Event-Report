@@ -1,0 +1,4 @@
+# Template sources and exports stay local
+*.docx
+*.pdf
+.DS_Store

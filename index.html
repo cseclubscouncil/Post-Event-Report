@@ -4,6 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Post Event Report</title>
+  <link rel="preload" href="assets/fonts/tinos-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/tinos-700-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -208,13 +210,10 @@
           <input name="headVtu" required placeholder="VTU12345" pattern="(?:[Vv][Tt][Uu])?[0-9]{4,6}" title="VTU number, e.g. VTU24996">
         </label>
       </div>
-      <div class="row">
-        <label class="field">Vice Head Name
-          <input name="viceName" required>
-        </label>
-        <label class="field">Vice Head VTU No.
-          <input name="viceVtu" placeholder="VTU12345" required pattern="(?:[Vv][Tt][Uu])?[0-9]{4,6}" title="VTU number, e.g. VTU24996">
-        </label>
+      <div class="field">Vice Head(s)
+        <div id="viceHeads" class="vice-heads"></div>
+        <button type="button" class="btn small" id="addVice">+ Add another vice head</button>
+        <p class="hint">Enter one person per row. Up to 3 vice heads.</p>
       </div>
       <div class="row">
         <label class="field">Faculty Coordinator Name
@@ -258,6 +257,14 @@
       <option>I</option><option>II</option><option>III</option><option>IV</option>
     </select>
     <button type="button" class="remove" aria-label="Remove winner">×</button>
+  </div>
+</template>
+
+<template id="viceRow">
+  <div class="vice">
+    <input data-k="name" placeholder="Vice Head Name" required>
+    <input data-k="vtu" placeholder="VTU No." required pattern="(?:[Vv][Tt][Uu])?[0-9]{4,6}" title="VTU number, e.g. VTU24996">
+    <button type="button" class="remove" aria-label="Remove vice head">×</button>
   </div>
 </template>
 

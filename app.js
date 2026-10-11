@@ -6,7 +6,12 @@
   const report = $('#report');
   const winnersBox = $('#winners');
   const winnerTpl = $('#winnerRow');
+  const viceBox = $('#viceHeads');
+  const viceTpl = $('#viceRow');
+  const addViceBtn = $('#addVice');
+  const MAX_VICE = 3;
   let winners = [];
+  let viceHeads = [{ name: '', vtu: '' }];
 
   /* ---------- helpers ---------- */
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => (
@@ -31,7 +36,28 @@
   };
   // "24996" -> "VTU24996"; leaves already-prefixed values alone
   const withPrefix = (id, prefix) => (/^\d+$/.test(id) ? prefix + id : id.toUpperCase());
-  const capWords = (s) => s.replace(/(^|[\s.])([a-z])/g, (m, a, b) => a + b.toUpperCase());
+  // People's names: "R.JAYASURYA" -> "R.Jayasurya", "dr. s.p. kumar" -> "Dr. S.P. Kumar"
+  const nameCase = (s) => s.toLowerCase().replace(/(^|[\s.\-'(])([a-z])/g, (m, a, b) => a + b.toUpperCase());
+  // Titles: "AI FORGE EXPO" -> "AI Forge Expo". Known acronyms stay in capitals, and
+  // deliberate mixed case ("GitHub", "iOS") is kept when the title isn't typed in all caps/lowercase.
+  const ACRONYMS = new Set(['AI', 'ML', 'AIML', 'DL', 'DS', 'NLP', 'LLM', 'GPT', 'CV', 'IOT', 'CSE', 'ECE', 'EEE', 'IT',
+    'UI', 'UX', 'AR', 'VR', 'XR', 'API', 'DSA', 'SQL', 'AWS', 'HTML', 'CSS', 'JS', 'GDG', 'IEEE', 'ACM', 'CSI', 'CTF',
+    'R&D', '2D', '3D', 'NSS', 'NCC', 'SDG', 'DIY', 'QA', 'HR', 'PPT', 'MCQ', 'CCC', 'VTU']);
+  const SMALL = new Set(['a', 'an', 'and', 'as', 'at', 'but', 'by', 'for', 'in', 'of', 'on', 'or', 'the', 'to', 'vs', 'via', 'with']);
+  const titleCase = (s) => {
+    const uniform = s === s.toUpperCase() || s === s.toLowerCase();
+    let first = true;
+    return s.split(/(\s+)/).map((w) => {
+      if (!w.trim()) return w;
+      const isFirst = first;
+      first = false;
+      if (ACRONYMS.has(w.replace(/[^A-Za-z0-9&]/g, '').toUpperCase())) return w.toUpperCase();
+      if (!uniform && /[A-Z]/.test(w.slice(1))) return w;
+      const lw = w.toLowerCase();
+      if (!isFirst && SMALL.has(lw)) return lw;
+      return lw.replace(/(^|[\-.'(/])([a-z])/g, (m, a, b) => a + b.toUpperCase());
+    }).join('');
+  };
   const fmtMoney = (n) => (n === '' ? '' : '₹ ' + Number(n).toLocaleString('en-IN', { maximumFractionDigits: 2 }));
 
   /* ---------- form <-> data ---------- */
@@ -50,6 +76,7 @@
       }
     }
     d.winners = winners.filter((w) => Object.values(w).some(Boolean));
+    d.viceHeads = viceHeads.map((v) => ({ ...v }));
     return d;
   }
 
@@ -61,6 +88,8 @@
       else el.value = d[el.name];
     }
     winners = Array.isArray(d.winners) ? d.winners : [];
+    if (Array.isArray(d.viceHeads) && d.viceHeads.length) viceHeads = d.viceHeads.slice(0, MAX_VICE);
+    else if (d.viceName || d.viceVtu) viceHeads = [{ name: d.viceName || '', vtu: d.viceVtu || '' }]; // older saves
   }
 
   /* ---------- winners ---------- */
@@ -87,6 +116,34 @@
     winnersBox.lastElementChild.querySelector('input').focus();
   });
 
+  /* ---------- vice heads ---------- */
+  function renderVices() {
+    viceBox.innerHTML = '';
+    viceHeads.forEach((v, i) => {
+      const row = viceTpl.content.firstElementChild.cloneNode(true);
+      row.querySelectorAll('[data-k]').forEach((inp) => {
+        inp.value = v[inp.dataset.k] || '';
+        inp.addEventListener('input', () => { v[inp.dataset.k] = inp.value.trim(); update(); });
+      });
+      const rm = row.querySelector('.remove');
+      if (i === 0) rm.style.visibility = 'hidden'; // at least one vice head is required
+      rm.addEventListener('click', () => {
+        viceHeads.splice(i, 1);
+        renderVices();
+        update();
+      });
+      viceBox.appendChild(row);
+    });
+    addViceBtn.hidden = viceHeads.length >= MAX_VICE;
+  }
+
+  addViceBtn.addEventListener('click', () => {
+    viceHeads.push({ name: '', vtu: '' });
+    renderVices();
+    update();
+    viceBox.lastElementChild.querySelector('input').focus();
+  });
+
   /* ---------- report ---------- */
   // The report is built as a list of blocks, then poured into fixed A4 sheets
   // (see paginate) so the preview shows exactly the pages that will print.
@@ -96,10 +153,11 @@
     const media = d.media || [];
     const ph = (v, text) => (v ? esc(v) : `<span class="placeholder">${text}</span>`);
     const clubLine = ph(d.clubName, 'Club Name');
+    const eventName = titleCase(d.eventName);
 
     const footer = `
       <div class="foot-left">CSE Clubs Council &nbsp;–&nbsp; ${clubLine}</div>
-      <div class="foot-right">Post Event Report${d.eventName ? ' &nbsp;|&nbsp; ' + esc(d.eventName) : ''}</div>`;
+      <div class="foot-right">Post Event Report${eventName ? ' &nbsp;|&nbsp; ' + esc(eventName) : ''}</div>`;
 
     /* cover */
     const cover = `
@@ -110,7 +168,7 @@
       <h1>POST EVENT REPORT</h1>
       <div class="details">
         <p><b>Club Name:</b> ${val(d.clubName)}</p>
-        <p><b>Event Name:</b> ${val(d.eventName)}</p>
+        <p><b>Event Name:</b> ${val(eventName)}</p>
         <p><b>Event Type:</b> ${val(type)}</p>
         <p><b>Event Category:</b> ${val(d.eventCategory)}</p>
         <p><b>Event Date:</b> ${val(fmtDate(d.eventDate))}</p>
@@ -136,7 +194,7 @@
 
     const winnerRows = d.noWinners.length ? [] : d.winners.map((w) => `<tr>
       <td>${esc(w.position)}</td><td>${esc(withPrefix(w.vtu, 'VTU'))}</td>
-      <td>${esc(capWords(w.name))}</td><td>${esc(w.dept)}</td><td>${esc(w.year)}</td></tr>`);
+      <td>${esc(nameCase(w.name))}</td><td>${esc(w.dept.toUpperCase())}</td><td>${esc(w.year)}</td></tr>`);
     const winnersBlock = winnerRows.length
       ? {
           units: winnerRows.map((r, i) => r.replace('<tr>', `<tr><td>${i + 1}</td>`)),
@@ -186,49 +244,45 @@
     ];
 
     /* signatures */
-    const person = (name, role, id) => `
+    const person = (name, lines, id, idPh) => `
       <div class="person">
         <p><b>${ph(name, 'Name')}</b></p>
-        <p>${role}</p>
-        <p>${clubLine}</p>
-        <p>${ph(id && withPrefix(id, 'VTU'), 'VTU*****')}</p>
+        ${lines.map((l) => `<p>${l}</p>`).join('')}
+        <p>${ph(id, idPh)}</p>
         <p>Date:</p>
       </div>`;
-    const signs = `
-      <h3>SUBMITTED BY:</h3>
-      <div class="grid">
-        ${person(capWords(d.headName), 'Club Head', d.headVtu)}
-        ${person(capWords(d.viceName), 'Club Vice-Head', d.viceVtu)}
-      </div>
-      <div class="person faculty">
-        <p><b>${ph(capWords(d.facultyName), 'Faculty Coordinator Name')}</b></p>
-        <p>${ph(d.facultyDesignation, 'Faculty Designation')}</p>
-        <p>Faculty Coordinator, ${clubLine}</p>
-        <p>${ph(d.facultyTts && withPrefix(d.facultyTts, 'TTS'), 'TTS****')}</p>
-        <p>Date:</p>
-      </div>
+    const vtu = (id) => id && withPrefix(id, 'VTU');
+    const submitters = [
+      person(nameCase(d.headName), ['Club Head', clubLine], vtu(d.headVtu), 'VTU*****'),
+      ...d.viceHeads.map((v) => person(nameCase(v.name), ['Club Vice-Head', clubLine], vtu(v.vtu), 'VTU*****')),
+      person(nameCase(d.facultyName),
+        [ph(titleCase(d.facultyDesignation), 'Faculty Designation'), 'Faculty Coordinator', clubLine],
+        d.facultyTts && withPrefix(d.facultyTts, 'TTS'), 'TTS****'),
+    ];
+    const compact = submitters.length > 4 ? ' compact' : ''; // a third row of signatures: tighten spacing
 
-      <hr>
-      <h3>VERIFIED BY:</h3>
-      <div class="grid">
-        <div class="person">
-          <p><b>Suja Suresh</b></p><p>Events Head</p><p>CSE Clubs Council</p><p>VTU32424</p><p>Date:</p>
+    const signs = [
+      { html: `<div class="sig-block">
+        <h3>SUBMITTED BY:</h3>
+        <div class="grid${compact}">${submitters.join('')}</div>
+      </div>` },
+      { html: `<div class="sig-block">
+        <hr>
+        <h3>VERIFIED BY:</h3>
+        <div class="grid${compact}">
+          ${person('Suja Suresh', ['Events Head', 'CSE Clubs Council'], 'VTU32424')}
+          ${person('Cheedella Venkata Sai Charan', ['President', 'CSE Clubs Council'], 'VTU24996')}
         </div>
-        <div class="person">
-          <p><b>Cheedella Venkata Sai Charan</b></p><p>President</p><p>CSE Clubs Council</p><p>VTU24996</p><p>Date:</p>
+      </div>` },
+      { html: `<div class="sig-block">
+        <hr>
+        <h3>REVIEWED BY:</h3>
+        <div class="grid${compact}">
+          <div class="person"><p><b>Dr. M. Kavitha</b></p><p>Professor &amp; Head of the Department - CSE</p><p>Date:</p></div>
+          <div class="person"><p><b>Dr. S.P. Chokkalingam</b></p><p>Professor &amp; Dean-SoC</p><p>Date:</p></div>
         </div>
-      </div>
-
-      <hr>
-      <h3>REVIEWED BY:</h3>
-      <div class="grid">
-        <div class="person">
-          <p><b>Dr. M. Kavitha</b></p><p>Professor &amp; Head of the Department - CSE</p><p>Date:</p>
-        </div>
-        <div class="person">
-          <p><b>Dr. S.P. Chokkalingam</b></p><p>Professor &amp; Dean-SoC</p><p>Date:</p>
-        </div>
-      </div>`;
+      </div>` },
+    ];
 
     return { footer, cover, blocks, signs };
   }
@@ -247,57 +301,60 @@
 
   function paginate({ footer, cover, blocks, signs }) {
     measure.innerHTML = '';
-    const newSheet = (cls = 'content') => {
+    const newSheet = (cls) => {
       const sheet = toNode(`<section class="sheet ${cls}"><div class="sheet-body"></div><footer class="sheet-foot">${footer}</footer></section>`);
       measure.appendChild(sheet);
       return sheet.firstElementChild;
     };
     const fits = (body) => body.scrollHeight <= body.clientHeight + 1;
 
+    // pour blocks into as many sheets of this kind as needed
+    const pour = (list, cls) => {
+      let body = newSheet(cls);
+      const queue = list.map((b) => ({ ...b, first: true }));
+      while (queue.length) {
+        const b = queue.shift();
+        const node = toNode(b.html ?? b.render(b.units, b.first));
+        body.appendChild(node);
+        if (fits(body)) continue;
+        node.remove();
+
+        // split long text / tables: largest piece that still fits on this page
+        if (b.units) {
+          let lo = b.minUnits, hi = b.units.length - 1, best = 0;
+          while (lo <= hi) {
+            const mid = (lo + hi) >> 1;
+            const trial = toNode(b.render(b.units.slice(0, mid), b.first));
+            body.appendChild(trial);
+            if (fits(body)) { best = mid; lo = mid + 1; } else hi = mid - 1;
+            trial.remove();
+          }
+          if (best) {
+            body.appendChild(toNode(b.render(b.units.slice(0, best), b.first)));
+            queue.unshift({ ...b, units: b.units.slice(best), first: false });
+            body = newSheet(cls);
+            continue;
+          }
+        }
+
+        if (!body.children.length) { body.appendChild(node); body = newSheet(cls); continue; } // too tall for any page
+        // don't leave a heading stranded at the bottom of a page
+        const carried = [];
+        while (body.children.length > 1 && body.lastElementChild.tagName === 'H2') {
+          const h = body.lastElementChild;
+          h.remove();
+          carried.unshift(h);
+        }
+        body = newSheet(cls);
+        carried.forEach((n) => body.appendChild(n));
+        queue.unshift(b);
+      }
+      if (!body.children.length) body.closest('.sheet').remove();
+    };
+
     newSheet('cover').innerHTML = cover;
-
-    let body = newSheet();
-    const queue = blocks.map((b) => ({ ...b, first: true }));
-    while (queue.length) {
-      const b = queue.shift();
-      const node = toNode(b.html ?? b.render(b.units, b.first));
-      body.appendChild(node);
-      if (fits(body)) continue;
-      node.remove();
-
-      // split long text / tables: largest piece that still fits on this page
-      if (b.units) {
-        let lo = b.minUnits, hi = b.units.length - 1, best = 0;
-        while (lo <= hi) {
-          const mid = (lo + hi) >> 1;
-          const trial = toNode(b.render(b.units.slice(0, mid), b.first));
-          body.appendChild(trial);
-          if (fits(body)) { best = mid; lo = mid + 1; } else hi = mid - 1;
-          trial.remove();
-        }
-        if (best) {
-          body.appendChild(toNode(b.render(b.units.slice(0, best), b.first)));
-          queue.unshift({ ...b, units: b.units.slice(best), first: false });
-          body = newSheet();
-          continue;
-        }
-      }
-
-      if (!body.children.length) { body.appendChild(node); body = newSheet(); continue; } // too tall for any page
-      // don't leave a heading stranded at the bottom of a page
-      const carried = [];
-      while (body.children.length > 1 && body.lastElementChild.tagName === 'H2') {
-        const h = body.lastElementChild;
-        h.remove();
-        carried.unshift(h);
-      }
-      body = newSheet();
-      carried.forEach((n) => body.appendChild(n));
-      queue.unshift(b);
-    }
-    if (!body.children.length) body.closest('.sheet').remove();
-
-    newSheet('signs').innerHTML = signs;
+    pour(blocks, 'content');
+    pour(signs, 'signs');
 
     report.replaceChildren(...measure.children);
   }
@@ -361,7 +418,7 @@
     if ((n < 250 || n > 400) && !confirm(`The brief report has ${n} words; 250–400 is expected.\n\nDownload anyway?`)) return;
 
     const prevTitle = document.title;
-    document.title = `Post Event Report - ${d.clubName} - ${d.eventName}`.replace(/[\\/:*?"<>|]/g, '');
+    document.title = `Post Event Report - ${d.clubName} - ${titleCase(d.eventName)}`.replace(/[\\/:*?"<>|]/g, '');
     window.print();
     document.title = prevTitle;
   }
@@ -374,7 +431,9 @@
     form.reset();
     form.classList.remove('checked');
     winners = [];
+    viceHeads = [{ name: '', vtu: '' }];
     renderWinners();
+    renderVices();
     try { localStorage.removeItem(STORAGE_KEY); } catch (e) { /* ignore */ }
     update();
   });
@@ -391,6 +450,9 @@
     if (saved) writeForm(saved);
   } catch (e) { /* ignore bad or missing storage */ }
   renderWinners();
+  renderVices();
   update();
   fitPreview();
+  // re-measure pages once the bundled report font has loaded
+  if (document.fonts) document.fonts.ready.then(update);
 })();
