@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Post Event Report</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="app-bar">
+  <div class="brand">
+    <img src="assets/ccc-logo.png" alt="CSE Clubs Council">
+    <div>
+      <strong>Post Event Report</strong>
+      <span>CSE Clubs Council · fill the form, then download</span>
+    </div>
+  </div>
+  <div class="actions">
+    <button type="button" class="btn ghost" id="resetBtn">Clear form</button>
+    <button type="button" class="btn ghost only-mobile" id="previewBtn">Preview</button>
+    <button type="button" class="btn primary" id="printBtn">Download<span class="hide-xs"> PDF</span></button>
+  </div>
+</header>
+
+<main class="layout">
+  <form id="form" class="form" novalidate autocomplete="off">
+
+    <p class="notice">Your progress is saved automatically in this browser. <b>All fields are required.</b></p>
+
+    <!-- EVENT DETAILS -->
+    <fieldset class="card">
+      <legend>Event Details</legend>
+
+      <label class="field">Club Name
+        <select name="clubName" required>
+          <option value="">Select your club</option>
+          <option>Coding Club</option>
+          <option>Innovation Club</option>
+          <option>CyberSentinal Club</option>
+          <option>Animatrix Club (Animation)</option>
+          <option>Animatrix Club (E-Sports)</option>
+          <option>Animatrix Club (Game Development)</option>
+          <option>Magazine Club</option>
+          <option>Fashion &amp; Fusion Club</option>
+          <option>Nature Club</option>
+          <option>Yoga Club</option>
+          <option>AspireX Club</option>
+          <option>AppNova Club</option>
+          <option>ShortFilm &amp; Movie Appreciation Club</option>
+          <option>AI Forge</option>
+          <option>NetForge</option>
+        </select>
+      </label>
+
+      <label class="field">Event Name
+        <input name="eventName" required>
+      </label>
+
+      <div class="field">Event Type
+        <div class="choices">
+          <label><input type="radio" name="eventType" value="Event" required> Event</label>
+          <label><input type="radio" name="eventType" value="Workshop"> Workshop</label>
+          <label><input type="radio" name="eventType" value="Competition"> Competition</label>
+          <label><input type="radio" name="eventType" value="Other"> Other</label>
+        </div>
+        <input name="eventTypeOther" id="eventTypeOther" placeholder="Specify event type" hidden>
+      </div>
+
+      <div class="field">Event Category
+        <div class="choices">
+          <label><input type="radio" name="eventCategory" value="Technical" required> Technical</label>
+          <label><input type="radio" name="eventCategory" value="Non-Technical"> Non-Technical</label>
+        </div>
+      </div>
+
+      <div class="row">
+        <label class="field">Event Date
+          <input type="date" name="eventDate" required>
+        </label>
+        <label class="field">Start Time
+          <input type="time" name="timeFrom" required>
+        </label>
+        <label class="field">End Time
+          <input type="time" name="timeTo" required>
+        </label>
+      </div>
+
+      <div class="field">Mode of Event
+        <div class="choices">
+          <label><input type="radio" name="mode" value="Offline" required> Offline</label>
+          <label><input type="radio" name="mode" value="Online"> Online</label>
+        </div>
+      </div>
+
+      <label class="field">Venue
+        <input name="venue" id="venue" required placeholder="e.g. Seminar Hall, Block 4">
+      </label>
+    </fieldset>
+
+    <!-- 1. PARTICIPATION -->
+    <fieldset class="card">
+      <legend>1. Participation Details</legend>
+
+      <div class="row">
+        <label class="field">Registered Participants
+          <input type="number" min="0" name="registered" required>
+        </label>
+        <label class="field">Actual Participants Attended
+          <input type="number" min="0" name="attended" required>
+        </label>
+      </div>
+      <p class="hint">Attach the attendance sheet as a hard copy with the printed report.</p>
+
+      <div class="field">Winners / Awardees Details
+        <div id="winners" class="winners"></div>
+        <button type="button" class="btn small" id="addWinner">+ Add winner</button>
+        <label class="check"><input type="checkbox" name="noWinners" value="yes" id="noWinners"> No winners / awardees for this event</label>
+      </div>
+    </fieldset>
+
+    <!-- 2. EXECUTION -->
+    <fieldset class="card">
+      <legend>2. Event Execution</legend>
+
+      <label class="field">Brief Report of What Happened
+        <textarea name="briefReport" id="briefReport" rows="10" required placeholder="250–400 words"></textarea>
+        <span class="counter" id="wordCount">0 words</span>
+      </label>
+
+      <label class="field">Any Deviation from Proposed Agenda
+        <textarea name="deviation" rows="3" required placeholder="Write &quot;None&quot; if there was no deviation"></textarea>
+      </label>
+    </fieldset>
+
+    <!-- 3. FINANCIAL -->
+    <fieldset class="card">
+      <legend>3. Financial Statement</legend>
+      <div class="row">
+        <label class="field">Proposed Amount (₹)
+          <input type="number" min="0" step="0.01" name="proposedAmount" required>
+        </label>
+        <label class="field">Actual Amount (₹)
+          <input type="number" min="0" step="0.01" name="actualAmount" required>
+        </label>
+      </div>
+    </fieldset>
+
+    <!-- 4. OUTCOMES -->
+    <fieldset class="card">
+      <legend>4. Outcomes &amp; Proof</legend>
+
+      <label class="field">Key Outcomes Achieved
+        <textarea name="outcomes" rows="4" required></textarea>
+      </label>
+
+      <label class="field">Feedback Rating From Participants (out of 5)
+        <input type="number" min="0" max="5" step="0.1" name="feedbackRating" class="short" required>
+        <span class="hint">Get this from the CCC website, and attach the feedback hard copy from there.</span>
+      </label>
+
+      <div class="field">Event Photos &amp; Post Links <span class="hint inline">(get these from the social media team)</span>
+        <div class="row">
+          <label class="sub">Drive<input type="url" name="linkDrive" placeholder="https://" required pattern="https?://\S+\.\S+" title="Paste the full link, starting with https://"></label>
+          <label class="sub">Instagram<input type="url" name="linkInstagram" placeholder="https://" required pattern="https?://\S+\.\S+" title="Paste the full link, starting with https://"></label>
+        </div>
+        <div class="row">
+          <label class="sub">LinkedIn<input type="url" name="linkLinkedIn" placeholder="https://" required pattern="https?://\S+\.\S+" title="Paste the full link, starting with https://"></label>
+          <label class="sub">CCC Website<input type="url" name="linkWebsite" placeholder="https://" required pattern="https?://\S+\.\S+" title="Paste the full link, starting with https://"></label>
+        </div>
+      </div>
+
+      <div class="field">Media Coverage <span class="hint inline">(tick at least one)</span>
+        <div class="choices">
+          <label><input type="checkbox" name="media" value="Instagram" id="mediaFirst"> Instagram</label>
+          <label><input type="checkbox" name="media" value="LinkedIn"> LinkedIn</label>
+          <label><input type="checkbox" name="media" value="Website"> Website</label>
+        </div>
+      </div>
+
+      <div class="field">Certificates Distributed
+        <div class="choices">
+          <label><input type="radio" name="certificates" value="Yes" required> Yes</label>
+          <label><input type="radio" name="certificates" value="No"> No</label>
+        </div>
+      </div>
+    </fieldset>
+
+    <!-- 5. LEARNINGS -->
+    <fieldset class="card">
+      <legend>5. Learnings &amp; Suggestions</legend>
+      <label class="field">Challenges Faced
+        <textarea name="challenges" rows="3" required></textarea>
+      </label>
+      <label class="field">Suggestions for Next Time
+        <textarea name="suggestions" rows="3" required></textarea>
+      </label>
+    </fieldset>
+
+    <!-- SUBMITTED BY -->
+    <fieldset class="card">
+      <legend>Submitted By</legend>
+      <div class="row">
+        <label class="field">Club Head Name
+          <input name="headName" required>
+        </label>
+        <label class="field">Club Head VTU No.
+          <input name="headVtu" required placeholder="VTU12345" pattern="(?:[Vv][Tt][Uu])?[0-9]{4,6}" title="VTU number, e.g. VTU24996">
+        </label>
+      </div>
+      <div class="row">
+        <label class="field">Vice Head Name
+          <input name="viceName" required>
+        </label>
+        <label class="field">Vice Head VTU No.
+          <input name="viceVtu" placeholder="VTU12345" required pattern="(?:[Vv][Tt][Uu])?[0-9]{4,6}" title="VTU number, e.g. VTU24996">
+        </label>
+      </div>
+      <div class="row">
+        <label class="field">Faculty Coordinator Name
+          <input name="facultyName" required>
+        </label>
+        <label class="field">Faculty Designation
+          <input name="facultyDesignation" placeholder="e.g. Assistant Professor" required>
+        </label>
+        <label class="field">Faculty TTS No.
+          <input name="facultyTts" placeholder="TTS1234" required pattern="(?:[Tt][Tt][Ss])?[0-9]{3,6}" title="TTS number, e.g. TTS1234">
+        </label>
+      </div>
+      <p class="hint">Signatures and dates are left blank for signing by hand after printing.</p>
+    </fieldset>
+
+    <div class="form-end">
+      <button type="button" class="btn primary big" id="printBtn2">Download PDF</button>
+      <p class="hint">In the print window, choose <b>Save as PDF</b> (or your printer) and paper size <b>A4</b>.</p>
+    </div>
+  </form>
+
+  <aside class="preview-wrap" id="previewWrap">
+    <div class="preview-head">
+      <span>Live preview</span>
+      <button type="button" class="btn small only-mobile" id="closePreview">Back to form</button>
+    </div>
+    <div class="preview-scroll">
+      <div id="report" class="report"></div>
+    </div>
+  </aside>
+</main>
+
+<template id="winnerRow">
+  <div class="winner">
+    <input data-k="position" placeholder="Position / Award" required>
+    <input data-k="vtu" placeholder="VTU No." required pattern="(?:[Vv][Tt][Uu])?[0-9]{4,6}" title="VTU number, e.g. VTU24996">
+    <input data-k="name" placeholder="Name" required>
+    <input data-k="dept" placeholder="Dept." required>
+    <select data-k="year" required>
+      <option value="">Year</option>
+      <option>I</option><option>II</option><option>III</option><option>IV</option>
+    </select>
+    <button type="button" class="remove" aria-label="Remove winner">×</button>
+  </div>
+</template>
+
+<script src="app.js"></script>
+</body>
+</html>
