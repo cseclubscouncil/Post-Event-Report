@@ -187,12 +187,24 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--a
 .placeholder { color: #999; }
 
 /* cover */
-.cover .logos { display: flex; justify-content: center; align-items: center; gap: 8mm; margin-top: 8mm; }
+.cover .sheet-body { display: flex; flex-direction: column; }
+.cover .logos { display: flex; justify-content: center; align-items: center; gap: 8mm; margin-top: 2mm; }
 .cover .logos .vt { width: 55mm; }
 .cover .logos .ccc { width: 36mm; }
-.cover h1 { margin: 32mm 0 0; text-align: center; font-size: 16pt; font-weight: 700; }
-.cover .details { margin-top: 40mm; }
-.cover .details p { margin: 0 0 5.4mm; }
+.cover .school { margin-top: 6mm; text-align: center; font-size: 12.5pt; line-height: 1.45; }
+.cover .school p { margin: 0; }
+.cover h1 { margin: 14mm 0 0; text-align: center; font-size: 18pt; font-weight: 700; letter-spacing: .04em; }
+.cover .club-title { margin: 4mm 0 0; text-align: center; font-size: 15pt; font-weight: 700; }
+.cover .details { margin-top: 14mm; }
+.cover .details p { margin: 0 0 4mm; }
+.cover-signs {
+  margin-top: auto; padding-bottom: 2mm;
+  display: flex; flex-wrap: wrap; justify-content: center; column-gap: 10mm; row-gap: 6mm;
+  font-size: 11pt; line-height: 1.3; text-align: center;
+}
+.cover-signs .sig { flex: 0 0 calc((100% - 20mm) / 3); }
+.cover-signs .sig-line { height: 14mm; margin-bottom: 1.5mm; border-bottom: .75pt solid #000; }
+.cover-signs p { margin: 0; }
 
 /* sections */
 .content h2 { margin: 6mm 0 3mm; font-size: 12pt; font-weight: 700; }

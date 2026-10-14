@@ -157,7 +157,21 @@
 
     const footer = `
       <div class="foot-left">CSE Clubs Council &nbsp;–&nbsp; ${clubLine}</div>
-      <div class="foot-right">Post Event Report${eventName ? ' &nbsp;|&nbsp; ' + esc(eventName) : ''}</div>`;
+      <div class="foot-right">Event Report${eventName ? ' &nbsp;|&nbsp; ' + esc(eventName) : ''}</div>`;
+
+    /* cover signatures: club head, vice head(s), faculty coordinator */
+    const coverSign = (name, role, id, idPh) => `
+      <div class="sig">
+        <div class="sig-line"></div>
+        <p><b>${ph(name, 'Name')}</b></p>
+        <p>${role}</p>
+        <p>${ph(id, idPh)}</p>
+      </div>`;
+    const coverSigners = [
+      coverSign(nameCase(d.headName), 'Club Head', d.headVtu && withPrefix(d.headVtu, 'VTU'), 'VTU*****'),
+      ...d.viceHeads.map((v) => coverSign(nameCase(v.name), 'Club Vice-Head', v.vtu && withPrefix(v.vtu, 'VTU'), 'VTU*****')),
+      coverSign(nameCase(d.facultyName), 'Faculty Coordinator', d.facultyTts && withPrefix(d.facultyTts, 'TTS'), 'TTS****'),
+    ];
 
     /* cover */
     const cover = `
@@ -165,7 +179,12 @@
         <img class="vt" src="assets/veltech-logo.png" alt="Vel Tech University">
         <img class="ccc" src="assets/ccc-logo.png" alt="CSE Clubs Council">
       </div>
-      <h1>POST EVENT REPORT</h1>
+      <div class="school">
+        <p>School of Computing</p>
+        <p>Department of Computer Science and Engineering</p>
+      </div>
+      <h1>EVENT REPORT</h1>
+      <p class="club-title">${ph(d.clubName, 'Club Name')}</p>
       <div class="details">
         <p><b>Club Name:</b> ${val(d.clubName)}</p>
         <p><b>Event Name:</b> ${val(eventName)}</p>
@@ -175,7 +194,8 @@
         <p><b>Time of Conduct:</b> ${val(time)}</p>
         <p><b>Mode of Event:</b> ${val(d.mode)}</p>
         <p><b>Venue:</b> ${val(d.venue)}</p>
-      </div>`;
+      </div>
+      <div class="cover-signs">${coverSigners.join('')}</div>`;
 
     /* content blocks */
     const item = (html) => ({ html: `<ul><li>${html}</li></ul>` });
@@ -418,7 +438,7 @@
     if ((n < 250 || n > 400) && !confirm(`The brief report has ${n} words; 250–400 is expected.\n\nDownload anyway?`)) return;
 
     const prevTitle = document.title;
-    document.title = `Post Event Report - ${d.clubName} - ${titleCase(d.eventName)}`.replace(/[\\/:*?"<>|]/g, '');
+    document.title = `Event Report - ${d.clubName} - ${titleCase(d.eventName)}`.replace(/[\\/:*?"<>|]/g, '');
     window.print();
     document.title = prevTitle;
   }
