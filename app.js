@@ -19,7 +19,6 @@
   ));
   const val = (s) => (s ? esc(s) : '<span class="blank"></span>');
   const para = (s) => (s ? `<div class="para">${esc(s)}</div>` : '<div class="blank-lines"></div>');
-  const box = (on) => (on ? '☑' : '☐');
   const words = (s) => (s.trim() ? s.trim().split(/\s+/).length : 0);
 
   const fmtDate = (iso) => {
@@ -37,7 +36,9 @@
   // "24996" -> "VTU24996"; leaves already-prefixed values alone
   const withPrefix = (id, prefix) => (/^\d+$/.test(id) ? prefix + id : id.toUpperCase());
   // People's names: "R.JAYASURYA" -> "R.Jayasurya", "dr. s.p. kumar" -> "Dr. S.P. Kumar"
-  const nameCase = (s) => s.toLowerCase().replace(/(^|[\s.\-'(])([a-z])/g, (m, a, b) => a + b.toUpperCase());
+  const nameCase = (s) => s.toLowerCase()
+    .replace(/^(dr|prof|mr|mrs|ms)\.(?=\S)/, '$1. ') // "DR.THILAGAM" -> "dr. thilagam"
+    .replace(/(^|[\s.\-'(])([a-z])/g, (m, a, b) => a + b.toUpperCase());
   // Titles: "AI FORGE EXPO" -> "AI Forge Expo". Known acronyms stay in capitals, and
   // deliberate mixed case ("GitHub", "iOS") is kept when the title isn't typed in all caps/lowercase.
   const ACRONYMS = new Set(['AI', 'ML', 'AIML', 'DL', 'DS', 'NLP', 'LLM', 'GPT', 'CV', 'IOT', 'CSE', 'ECE', 'EEE', 'IT',
@@ -154,152 +155,166 @@
     const ph = (v, text) => (v ? esc(v) : `<span class="placeholder">${text}</span>`);
     const clubLine = ph(d.clubName, 'Club Name');
     const eventName = titleCase(d.eventName);
+    const vtu = (id) => id && withPrefix(id, 'VTU');
+    const tts = (id) => id && withPrefix(id, 'TTS');
+    const check = (on, label) => `<span class="cb${on ? ' on' : ''}"></span>${label}`;
 
+    // page numbers are filled in after pagination
     const footer = `
-      <div class="foot-left">CSE Clubs Council &nbsp;–&nbsp; ${clubLine}</div>
-      <div class="foot-right">Event Report${eventName ? ' &nbsp;|&nbsp; ' + esc(eventName) : ''}</div>`;
+      <div class="foot-left">CSE Clubs Council &nbsp;·&nbsp; ${clubLine}</div>
+      <div class="foot-right">${eventName ? esc(eventName) + ' &nbsp;·&nbsp; ' : ''}Page <span class="pg-no"></span> of <span class="pg-total"></span></div>`;
 
-    /* cover signatures: club head, vice head(s), faculty coordinator */
+    /* ----- cover ----- */
     const coverSign = (name, role, id, idPh) => `
       <div class="sig">
         <div class="sig-line"></div>
-        <p><b>${ph(name, 'Name')}</b></p>
+        <p class="sig-name">${ph(name, 'Name')}</p>
         <p>${role}</p>
-        <p>${ph(id, idPh)}</p>
+        <p class="sig-id">${ph(id, idPh)}</p>
       </div>`;
     const coverSigners = [
-      coverSign(nameCase(d.headName), 'Club Head', d.headVtu && withPrefix(d.headVtu, 'VTU'), 'VTU*****'),
-      ...d.viceHeads.map((v) => coverSign(nameCase(v.name), 'Club Vice-Head', v.vtu && withPrefix(v.vtu, 'VTU'), 'VTU*****')),
-      coverSign(nameCase(d.facultyName), 'Faculty Coordinator', d.facultyTts && withPrefix(d.facultyTts, 'TTS'), 'TTS****'),
+      coverSign(nameCase(d.headName), 'Club Head', vtu(d.headVtu), 'VTU*****'),
+      ...d.viceHeads.map((v) => coverSign(nameCase(v.name), 'Club Vice-Head', vtu(v.vtu), 'VTU*****')),
+      coverSign(nameCase(d.facultyName), 'Faculty Coordinator', tts(d.facultyTts), 'TTS****'),
     ];
+    const kv = (rows) => `<table class="kv">${rows.map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join('')}</table>`;
 
-    /* cover */
+    const dense = coverSigners.length > 3 ? ' dense' : ''; // second row of signatures: tighten spacing
     const cover = `
+      <div class="cover-inner${dense}">
       <div class="logos">
         <img class="vt" src="assets/veltech-logo.png" alt="Vel Tech University">
         <img class="ccc" src="assets/ccc-logo.png" alt="CSE Clubs Council">
       </div>
       <div class="school">
-        <p>School of Computing</p>
-        <p>Department of Computer Science and Engineering</p>
+        <p class="school-name">School of Computing</p>
+        <p class="dept-name">Department of Computer Science and Engineering</p>
       </div>
-      <h1>EVENT REPORT</h1>
-      <p class="club-title">${ph(d.clubName, 'Club Name')}</p>
-      <div class="details">
-        <p><b>Club Name:</b> ${val(d.clubName)}</p>
-        <p><b>Event Name:</b> ${val(eventName)}</p>
-        <p><b>Event Type:</b> ${val(type)}</p>
-        <p><b>Event Category:</b> ${val(d.eventCategory)}</p>
-        <p><b>Event Date:</b> ${val(fmtDate(d.eventDate))}</p>
-        <p><b>Time of Conduct:</b> ${val(time)}</p>
-        <p><b>Mode of Event:</b> ${val(d.mode)}</p>
-        <p><b>Venue:</b> ${val(d.venue)}</p>
+      <div class="title-block">
+        <h1>EVENT REPORT</h1>
+        <div class="ornament"></div>
+        <p class="club-title">${clubLine}</p>
       </div>
-      <div class="cover-signs">${coverSigners.join('')}</div>`;
+      <h2 class="cap">Event Details</h2>
+      ${kv([
+        ['Club Name', val(d.clubName)],
+        ['Event Name', val(eventName)],
+        ['Event Type', val(type)],
+        ['Event Category', val(d.eventCategory)],
+        ['Event Date', val(fmtDate(d.eventDate))],
+        ['Time of Conduct', val(time)],
+        ['Mode of Event', val(d.mode)],
+        ['Venue', val(d.venue)],
+      ])}
+      <div class="cover-signs">${coverSigners.join('')}</div>
+      </div>`;
 
-    /* content blocks */
-    const item = (html) => ({ html: `<ul><li>${html}</li></ul>` });
-    const heading = (html) => ({ html: `<h2>${html}</h2>`, keepWithNext: true });
-    const note = (html) => ({ html: `<p class="note">${html}</p>` });
+    /* ----- content blocks ----- */
+    const section = (n, title) => ({ html: `<h2 class="section" data-keep><span class="num">${n}.</span>${title}</h2>` });
+    const sub = (title) => ({ html: `<h3 class="subhead" data-keep>${title}</h3>` });
+    const facts = (rows) => ({ html: kv(rows) });
+    const enclosure = (text) => ({ html: `<p class="enclosure"><b>Enclosure:</b> ${text}</p>` });
     // long text can break across pages, word by word
-    const textItem = (label, text) => (text
+    const textField = (label, text) => (text
       ? {
           units: text.split(/(\s+)/),
           minUnits: 12,
           render: (u, first) => (first
-            ? `<ul><li>${label}<div class="para">${esc(u.join(''))}</div></li></ul>`
-            : `<ul class="cont"><li><div class="para">${esc(u.join('').replace(/^\s+/, ''))}</div></li></ul>`),
+            ? `<div class="rfield"><h3 class="subhead">${label}</h3><div class="para">${esc(u.join(''))}</div></div>`
+            : `<div class="rfield"><div class="para">${esc(u.join('').replace(/^\s+/, ''))}</div></div>`),
         }
-      : item(`${label}${para('')}`));
+      : { html: `<div class="rfield"><h3 class="subhead">${label}</h3>${para('')}</div>` });
 
-    const winnerRows = d.noWinners.length ? [] : d.winners.map((w) => `<tr>
-      <td>${esc(w.position)}</td><td>${esc(withPrefix(w.vtu, 'VTU'))}</td>
+    const winnerRows = d.noWinners.length ? [] : d.winners.map((w, i) => `<tr>
+      <td>${i + 1}</td><td>${esc(w.position)}</td><td>${esc(withPrefix(w.vtu, 'VTU'))}</td>
       <td>${esc(nameCase(w.name))}</td><td>${esc(w.dept.toUpperCase())}</td><td>${esc(w.year)}</td></tr>`);
     const winnersBlock = winnerRows.length
       ? {
-          units: winnerRows.map((r, i) => r.replace('<tr>', `<tr><td>${i + 1}</td>`)),
+          units: winnerRows,
           minUnits: 1,
-          render: (rows, first) => `<ul${first ? '' : ' class="cont"'}><li>${first ? 'Winners / Awardees Details:' : ''}
-            <table class="winners-table">
+          render: (rows, first) => `<div class="rfield">${first ? '<h3 class="subhead">Winners / Awardees Details</h3>' : ''}
+            <table class="data">
               <thead><tr><th>S.No</th><th>Position / Award</th><th>VTU No.</th><th>Name</th><th>Dept.</th><th>Year</th></tr></thead>
               <tbody>${rows.join('')}</tbody>
-            </table></li></ul>`,
+            </table></div>`,
         }
-      : item('Winners / Awardees Details: Nil');
+      : facts([['Winners / Awardees', 'Nil']]);
 
     const links = [
       ['Drive', d.linkDrive], ['Instagram', d.linkInstagram],
-      ['LinkedIn', d.linkLinkedIn], ['Website', d.linkWebsite],
-    ].filter(([, u]) => u);
-    const linksHtml = links.length
-      ? `<ul class="links">${links.map(([k, u]) => `<li><b>${k}:</b> ${esc(u)}</li>`).join('')}</ul>`
-      : ' <span class="blank"></span>';
+      ['LinkedIn', d.linkLinkedIn], ['CCC Website', d.linkWebsite],
+    ];
 
     const blocks = [
-      heading('1.&nbsp;&nbsp;PARTICIPATION DETAILS'),
-      item(`Registered Participants: ${val(d.registered)}`),
-      item(`Actual Participants Attended: ${val(d.attended)}`),
-      note('Attendance Sheet: Hard copy attached'),
+      section(1, 'Participation Details'),
+      facts([
+        ['Registered Participants', val(d.registered)],
+        ['Actual Participants Attended', val(d.attended)],
+      ]),
+      enclosure('Attendance sheet (hard copy)'),
       winnersBlock,
 
-      heading('2.&nbsp;&nbsp;EVENT EXECUTION'),
-      textItem('Brief Report of What Happened:', d.briefReport),
-      textItem('Any Deviation from Proposed Agenda:', d.deviation),
+      section(2, 'Event Execution'),
+      textField('Brief Report of What Happened', d.briefReport),
+      textField('Any Deviation from Proposed Agenda', d.deviation),
 
-      heading('3.&nbsp;&nbsp;FINANCIAL STATEMENT'),
-      item(`Proposed Amount: ${val(fmtMoney(d.proposedAmount))}`),
-      item(`Actual Amount: ${val(fmtMoney(d.actualAmount))}`),
+      section(3, 'Financial Statement'),
+      facts([
+        ['Proposed Amount', val(fmtMoney(d.proposedAmount))],
+        ['Actual Amount', val(fmtMoney(d.actualAmount))],
+      ]),
 
-      heading('4.&nbsp;&nbsp;OUTCOMES &amp; PROOF'),
-      textItem('Key Outcomes Achieved:', d.outcomes),
-      item(`Feedback Rating From Participants (Out of 5): ${d.feedbackRating ? esc(d.feedbackRating) + ' / 5' : val('')}`),
-      note('Feedback Report (from CCC website): Hard copy attached'),
-      item(`Event Photos Drive, Instagram, LinkedIn, Website Link:${linksHtml}`),
-      item(`Media Coverage: ${box(media.includes('Instagram'))} Instagram&nbsp;&nbsp; ${box(media.includes('LinkedIn'))} LinkedIn&nbsp;&nbsp; ${box(media.includes('Website'))} Website`),
-      item(`Certificates Distributed: ${box(d.certificates === 'Yes')} Yes&nbsp;&nbsp; ${box(d.certificates === 'No')} No`),
+      section(4, 'Outcomes &amp; Proof'),
+      textField('Key Outcomes Achieved', d.outcomes),
+      facts([['Feedback Rating (out of 5)', d.feedbackRating ? esc(d.feedbackRating) + ' / 5' : val('')]]),
+      enclosure('Participant feedback report from the CCC website (hard copy)'),
+      sub('Event Photos &amp; Post Links'),
+      { html: `<table class="kv links">${links.map(([k, u]) => `<tr><th>${k}</th><td>${u ? esc(u) : val('')}</td></tr>`).join('')}</table>` },
+      facts([
+        ['Media Coverage', `${check(media.includes('Instagram'), 'Instagram')}${check(media.includes('LinkedIn'), 'LinkedIn')}${check(media.includes('Website'), 'Website')}`],
+        ['Certificates Distributed', `${check(d.certificates === 'Yes', 'Yes')}${check(d.certificates === 'No', 'No')}`],
+      ]),
 
-      heading('5.&nbsp;&nbsp;LEARNINGS &amp; SUGGESTIONS'),
-      textItem('Challenges Faced:', d.challenges),
-      textItem('Suggestions for Next Time:', d.suggestions),
+      section(5, 'Learnings &amp; Suggestions'),
+      textField('Challenges Faced', d.challenges),
+      textField('Suggestions for Next Time', d.suggestions),
     ];
 
-    /* signatures */
-    const person = (name, lines, id, idPh) => `
+    /* ----- signatures ----- */
+    const person = (name, lines, id) => `
       <div class="person">
-        <p><b>${ph(name, 'Name')}</b></p>
+        <div class="sig-line"></div>
+        <p class="sig-name">${ph(name, 'Name')}</p>
         ${lines.map((l) => `<p>${l}</p>`).join('')}
-        <p>${ph(id, idPh)}</p>
-        <p>Date:</p>
+        ${id ? `<p class="sig-id">${id}</p>` : ''}
+        <p class="sig-date">Date:&nbsp; <span class="fill d"></span> / <span class="fill d"></span> / <span class="fill y"></span></p>
       </div>`;
-    const vtu = (id) => id && withPrefix(id, 'VTU');
     const submitters = [
-      person(nameCase(d.headName), ['Club Head', clubLine], vtu(d.headVtu), 'VTU*****'),
-      ...d.viceHeads.map((v) => person(nameCase(v.name), ['Club Vice-Head', clubLine], vtu(v.vtu), 'VTU*****')),
+      person(nameCase(d.headName), ['Club Head', clubLine], ph(vtu(d.headVtu), 'VTU*****')),
+      ...d.viceHeads.map((v) => person(nameCase(v.name), ['Club Vice-Head', clubLine], ph(vtu(v.vtu), 'VTU*****'))),
       person(nameCase(d.facultyName),
         [ph(titleCase(d.facultyDesignation), 'Faculty Designation'), 'Faculty Coordinator', clubLine],
-        d.facultyTts && withPrefix(d.facultyTts, 'TTS'), 'TTS****'),
+        ph(tts(d.facultyTts), 'TTS****')),
     ];
-    const compact = submitters.length > 4 ? ' compact' : ''; // a third row of signatures: tighten spacing
+    const compact = submitters.length > 3 ? ' compact' : ''; // a second row of signers: tighten spacing
 
     const signs = [
-      { html: `<div class="sig-block">
-        <h3>SUBMITTED BY:</h3>
-        <div class="grid${compact}">${submitters.join('')}</div>
+      { html: `<div class="sig-block${compact}">
+        <h2 class="section">Submitted By</h2>
+        <div class="grid three${compact}">${submitters.join('')}</div>
       </div>` },
-      { html: `<div class="sig-block">
-        <hr>
-        <h3>VERIFIED BY:</h3>
-        <div class="grid${compact}">
+      { html: `<div class="sig-block${compact}">
+        <h2 class="section">Verified By</h2>
+        <div class="grid">
           ${person('Suja Suresh', ['Events Head', 'CSE Clubs Council'], 'VTU32424')}
           ${person('Cheedella Venkata Sai Charan', ['President', 'CSE Clubs Council'], 'VTU24996')}
         </div>
       </div>` },
-      { html: `<div class="sig-block">
-        <hr>
-        <h3>REVIEWED BY:</h3>
-        <div class="grid${compact}">
-          <div class="person"><p><b>Dr. M. Kavitha</b></p><p>Professor &amp; Head of the Department - CSE</p><p>Date:</p></div>
-          <div class="person"><p><b>Dr. S.P. Chokkalingam</b></p><p>Professor &amp; Dean-SoC</p><p>Date:</p></div>
+      { html: `<div class="sig-block${compact}">
+        <h2 class="section">Reviewed By</h2>
+        <div class="grid">
+          ${person('Dr. M. Kavitha', ['Professor &amp; Head of the Department', 'Computer Science and Engineering'])}
+          ${person('Dr. S.P. Chokkalingam', ['Professor &amp; Dean', 'School of Computing'])}
         </div>
       </div>` },
     ];
@@ -360,7 +375,7 @@
         if (!body.children.length) { body.appendChild(node); body = newSheet(cls); continue; } // too tall for any page
         // don't leave a heading stranded at the bottom of a page
         const carried = [];
-        while (body.children.length > 1 && body.lastElementChild.tagName === 'H2') {
+        while (body.children.length > 1 && body.lastElementChild.hasAttribute('data-keep')) {
           const h = body.lastElementChild;
           h.remove();
           carried.unshift(h);
@@ -376,7 +391,12 @@
     pour(blocks, 'content');
     pour(signs, 'signs');
 
-    report.replaceChildren(...measure.children);
+    const sheets = [...measure.children];
+    sheets.forEach((sh, i) => {
+      sh.querySelector('.pg-no').textContent = i + 1;
+      sh.querySelector('.pg-total').textContent = sheets.length;
+    });
+    report.replaceChildren(...sheets);
   }
 
   /* ---------- live update ---------- */

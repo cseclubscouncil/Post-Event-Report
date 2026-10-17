@@ -1,8 +1,7 @@
-/* Tinos: metric-compatible with Times New Roman, bundled so every device prints identically */
-@font-face { font-family: "Tinos"; font-style: normal; font-weight: 400; font-display: block; src: url("assets/fonts/tinos-400-normal.woff2") format("woff2"); }
-@font-face { font-family: "Tinos"; font-style: normal; font-weight: 700; font-display: block; src: url("assets/fonts/tinos-700-normal.woff2") format("woff2"); }
-@font-face { font-family: "Tinos"; font-style: italic; font-weight: 400; font-display: block; src: url("assets/fonts/tinos-400-italic.woff2") format("woff2"); }
-@font-face { font-family: "Tinos"; font-style: italic; font-weight: 700; font-display: block; src: url("assets/fonts/tinos-700-italic.woff2") format("woff2"); }
+/* Source Serif 4 (SIL OFL), bundled so every device prints identically */
+@font-face { font-family: "Source Serif 4"; font-style: normal; font-weight: 400; font-display: block; src: url("assets/fonts/source-serif-4-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Source Serif 4"; font-style: italic; font-weight: 400; font-display: block; src: url("assets/fonts/source-serif-4-400-italic.woff2") format("woff2"); }
+@font-face { font-family: "Source Serif 4"; font-style: normal; font-weight: 600; font-display: block; src: url("assets/fonts/source-serif-4-600-normal.woff2") format("woff2"); }
 
 /* ---------- App (screen) ---------- */
 :root {
@@ -168,70 +167,127 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--a
 /* ---------- Report (shared by preview and print) ---------- */
 /* Every sheet is exactly one A4 page: 20mm margins, footer pinned to the bottom. */
 .report .sheet {
+  --ink: #1a1a1a;
+  --navy: #1f3a5f;
+  --muted: #6b6f76;
+  --rule: #c9ced6;
   position: relative; overflow: hidden;
   width: 210mm; height: 297mm; padding: 20mm 20mm 0;
   background: #fff;
-  font-family: "Tinos", "Times New Roman", Times, serif;
-  font-size: 12pt; line-height: 1.3; color: #000;
+  font-family: "Source Serif 4", Georgia, "Times New Roman", serif;
+  font-size: 11.5pt; line-height: 1.5; color: var(--ink);
+  font-variant-numeric: lining-nums;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
 }
 .sheet-body { height: 250mm; overflow: hidden; }
 .sheet-foot {
   position: absolute; left: 20mm; right: 20mm; bottom: 12mm;
   display: flex; justify-content: space-between; gap: 8mm;
-  padding-top: 2mm; border-top: .5pt solid #999;
-  font-size: 9pt; line-height: 1.2; color: #333;
+  padding-top: 2.5mm; border-top: .5pt solid var(--rule);
+  font-size: 8.5pt; line-height: 1.2; color: var(--muted); letter-spacing: .02em;
 }
 .foot-left { flex-shrink: 0; }
 .foot-right { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
-.report b, .report strong { font-weight: 700; }
-.placeholder { color: #999; }
+.report b, .report strong { font-weight: 600; }
+.placeholder { color: #a7acb3; }
+.blank { display: inline-block; min-width: 45mm; border-bottom: .5pt solid var(--ink); }
+.blank-lines { height: 14mm; background: repeating-linear-gradient(transparent 0 6.5mm, var(--rule) 6.5mm calc(6.5mm + .5pt)); }
 
-/* cover */
-.cover .sheet-body { display: flex; flex-direction: column; }
-.cover .logos { display: flex; justify-content: center; align-items: center; gap: 8mm; margin-top: 2mm; }
-.cover .logos .vt { width: 55mm; }
-.cover .logos .ccc { width: 36mm; }
-.cover .school { margin-top: 6mm; text-align: center; font-size: 12.5pt; line-height: 1.45; }
-.cover .school p { margin: 0; }
-.cover h1 { margin: 14mm 0 0; text-align: center; font-size: 18pt; font-weight: 700; letter-spacing: .04em; }
-.cover .club-title { margin: 4mm 0 0; text-align: center; font-size: 15pt; font-weight: 700; }
-.cover .details { margin-top: 14mm; }
-.cover .details p { margin: 0 0 4mm; }
-.cover-signs {
-  margin-top: auto; padding-bottom: 2mm;
-  display: flex; flex-wrap: wrap; justify-content: center; column-gap: 10mm; row-gap: 6mm;
-  font-size: 11pt; line-height: 1.3; text-align: center;
+/* small grey capitals used for labels */
+.label, .kv th, h2.cap {
+  font-size: 8.5pt; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--muted);
 }
-.cover-signs .sig { flex: 0 0 calc((100% - 20mm) / 3); }
-.cover-signs .sig-line { height: 14mm; margin-bottom: 1.5mm; border-bottom: .75pt solid #000; }
-.cover-signs p { margin: 0; }
 
-/* sections */
-.content h2 { margin: 6mm 0 3mm; font-size: 12pt; font-weight: 700; }
-.content .sheet-body > h2:first-child { margin-top: 0; }
-.content ul { margin: 0; padding-left: 12mm; }
-.content li { margin: 0 0 1.6mm; }
-.content ul.cont > li { list-style: none; }
-.content .note { margin: 0 0 1.6mm 7mm; font-style: italic; }
-.content .para { margin: 1mm 0 2mm; white-space: pre-wrap; text-align: justify; }
-.content .links { margin: 1mm 0 0; padding-left: 0; list-style: none; }
-.content .links li { margin: 0 0 .8mm; word-break: break-all; }
+/* ----- cover ----- */
+.cover-inner { display: flex; flex-direction: column; height: 100%; }
+.cover .logos { display: flex; justify-content: center; align-items: center; gap: 10mm; margin-top: 2mm; }
+.cover .logos .vt { width: 52mm; }
+.cover .logos .ccc { width: 33mm; }
+.cover .school { margin-top: 8mm; text-align: center; }
+.cover .school p { margin: 0; }
+.cover .school-name { font-size: 9pt; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--navy); }
+.cover .dept-name { margin-top: 1mm !important; font-size: 11.5pt; color: var(--ink); }
+.cover .title-block { margin: 26mm 0 20mm; text-align: center; }
+.cover h1 { margin: 0; font-size: 26pt; font-weight: 600; letter-spacing: .06em; line-height: 1.1; color: var(--navy); }
+.cover .ornament { width: 14mm; height: .8pt; margin: 6mm auto; background: var(--navy); }
+.cover .club-title { margin: 0; font-size: 15pt; }
+h2.cap { margin: 0 0 2.5mm; color: var(--navy); }
 
-.blank { display: inline-block; min-width: 45mm; border-bottom: 1px solid #000; transform: translateY(-1mm); }
-.blank-lines { height: 14mm; margin: 1mm 0 2mm; background: repeating-linear-gradient(transparent 0 6.5mm, #000 6.5mm calc(6.5mm + 1px)); }
+/* label / value pairs: no rules, just alignment */
+table.kv { width: 100%; border-collapse: collapse; margin: 0 0 3mm; }
+.kv th, .kv td { padding: 1.4mm 0; text-align: left; vertical-align: baseline; }
+.kv th { width: 66mm; padding-right: 6mm; }
+.cover .kv th { width: 44mm; }
+.cover .kv td { font-size: 12pt; }
+.cover .kv th, .cover .kv td { padding: 1.9mm 0; }
+.kv.links th { width: 30mm; white-space: nowrap; }
+.kv.links td { font-size: 10pt; color: #2b2f36; overflow-wrap: anywhere; }
 
-table.winners-table { width: 100%; margin: 2mm 0 1mm; border-collapse: collapse; font-size: 11pt; }
-.winners-table th, .winners-table td { border: 1px solid #000; padding: 1.2mm 2mm; text-align: left; vertical-align: top; }
-.winners-table th { font-weight: 700; }
+.cover-signs {
+  margin-top: auto; padding-bottom: 3mm;
+  display: flex; flex-wrap: wrap; justify-content: center; column-gap: 12mm; row-gap: 7mm;
+  font-size: 10.5pt; line-height: 1.4; text-align: center;
+}
+.cover-signs .sig { flex: 0 0 calc((100% - 24mm) / 3); }
+.sig-line { height: 14mm; margin-bottom: 2mm; border-bottom: .6pt solid var(--ink); }
+.cover-signs p, .person p { margin: 0; }
+.sig-name { font-weight: 600; }
+.sig-id { color: var(--muted); }
 
-/* signatures */
-.signs h3 { margin: 0; font-size: 13pt; font-weight: 700; }
-.signs .grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 15mm; }
-.signs .person { margin-top: 20mm; }
-.signs .grid.compact > .person { margin-top: 12mm; }
-.signs .person p { margin: 0; }
-.signs .sheet-body > .sig-block:first-child hr { display: none; }
-.signs hr { margin: 9mm 0 7mm; border: 0; border-top: 1px solid #777; }
+/* cover with two rows of signatures */
+.cover-inner.dense .title-block { margin: 15mm 0 12mm; }
+.cover-inner.dense .kv th, .cover-inner.dense .kv td { padding: 1.3mm 0; }
+.cover-inner.dense .cover-signs { row-gap: 5mm; }
+.cover-inner.dense .sig-line { height: 11mm; }
+
+/* ----- sections ----- */
+h2.section {
+  margin: 9mm 0 4mm; padding-bottom: 2mm;
+  border-bottom: .5pt solid var(--rule);
+  font-size: 14pt; font-weight: 600; line-height: 1.25; color: var(--navy);
+}
+.sheet-body > h2.section:first-child, .sheet-body > .sig-block:first-child h2.section { margin-top: 0; }
+h2.section .num { display: inline-block; min-width: 7mm; color: var(--muted); font-weight: 400; }
+h3.subhead { margin: 4.5mm 0 1mm; font-size: 11.5pt; font-weight: 600; color: var(--ink); }
+.sheet-body > h3.subhead:first-child, .sheet-body > .rfield:first-child > h3.subhead { margin-top: 0; }
+.rfield { margin: 0 0 2mm; }
+.para { white-space: pre-wrap; text-align: left; }
+.enclosure { margin: 0 0 3mm; font-size: 10pt; font-style: italic; color: var(--muted); }
+.enclosure b { font-style: normal; font-weight: 600; }
+
+/* checkboxes */
+.cb {
+  display: inline-block; width: 3mm; height: 3mm; margin: 0 1.8mm 0 0; vertical-align: -.3mm;
+  border: .6pt solid var(--ink); border-radius: .4mm; position: relative;
+}
+.kv td .cb:not(:first-child) { margin-left: 6mm; }
+.cb.on { background: var(--navy); border-color: var(--navy); }
+.cb.on::after {
+  content: ""; position: absolute; left: .9mm; top: .25mm; width: .8mm; height: 1.7mm;
+  border: solid #fff; border-width: 0 .45mm .45mm 0; transform: rotate(45deg);
+}
+
+/* tables: three rules only */
+table.data { width: 100%; margin: 1.5mm 0 3mm; border-collapse: collapse; font-size: 10.5pt; border-top: .9pt solid var(--ink); border-bottom: .9pt solid var(--ink); }
+.data th, .data td { padding: 1.6mm 3mm 1.6mm 0; text-align: left; vertical-align: top; }
+.data thead th { border-bottom: .5pt solid var(--ink); font-size: 8.5pt; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.data th:last-child, .data td:last-child { padding-right: 0; }
+
+/* ----- signatures ----- */
+.sig-block { margin-bottom: 10mm; }
+.signs .grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 18mm; row-gap: 10mm; font-size: 11pt; line-height: 1.45; }
+.signs .grid.three { grid-template-columns: repeat(3, 1fr); column-gap: 10mm; font-size: 10.5pt; }
+/* two rows of submitters: tighten the whole signature page */
+.sig-block.compact { margin-bottom: 8mm; }
+.sig-block.compact h2.section { margin-top: 0; margin-bottom: 3mm; }
+.sig-block.compact .grid { row-gap: 6mm; }
+.sig-block.compact .sig-line { height: 10mm; margin-bottom: 1.5mm; }
+.sig-block.compact .sig-date { margin-top: 1.5mm !important; }
+.sig-date { margin-top: 2.5mm !important; white-space: nowrap; }
+/* writing lines for DD / MM / YYYY, sitting on the text baseline */
+.fill { display: inline-block; height: 1em; border-bottom: .5pt solid var(--ink); vertical-align: baseline; }
+.fill.d { width: 8mm; }
+.fill.y { width: 13mm; }
 
 /* ---------- Print ---------- */
 /* margins live inside each sheet, so the page itself has none (this also hides browser headers/footers) */
