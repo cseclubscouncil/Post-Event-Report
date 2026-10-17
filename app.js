@@ -697,8 +697,8 @@
     newSheet('cover').innerHTML = cover;
     pour(blocks, 'content');
     newSheet('photos').innerHTML = photosPage;
-    pour(signs, 'signs');
     annexPages.forEach((html) => { newSheet('annex').innerHTML = html; });
+    pour(signs, 'signs'); // signatures close the document
     measure.querySelectorAll('img[data-ref]').forEach((ph) => ph.replaceWith(imgFor(ph.dataset.ref)));
 
     const sheets = [...measure.children];

@@ -334,16 +334,18 @@ table.data { width: 100%; margin: 1.5mm 0 3mm; border-collapse: collapse; font-s
 .annex-frame .placeholder, .fig-frame .placeholder { font-size: 11pt; }
 
 /* ----- signatures ----- */
-.sig-block { margin-bottom: 10mm; }
+.signs .sheet-body { display: flex; flex-direction: column; }
+/* blocks share the page; the spare height is split equally and sits above the names as signing space */
+.sig-block { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
+.sig-block + .sig-block { margin-top: 8mm; }
+.sig-block h2.section { margin-top: 0; }
+.sig-block .grid { margin-top: auto; padding-top: 14mm; }
 .signs .grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 18mm; row-gap: 10mm; font-size: 11pt; line-height: 1.45; }
 .signs .grid.three { grid-template-columns: repeat(3, 1fr); column-gap: 10mm; font-size: 10.5pt; }
-/* signature blocks: plain white space above each name to sign in */
-.signs .person { padding-top: 16mm; }
-/* two rows of submitters: tighten the whole signature page */
-.sig-block.compact { margin-bottom: 5mm; }
-.sig-block.compact h2.section { margin-top: 0; margin-bottom: 3mm; }
-.sig-block.compact .grid { row-gap: 5mm; line-height: 1.38; }
-.sig-block.compact .person { padding-top: 12mm; }
+
+/* two rows of submitters: the second row needs its own signing space */
+.sig-block.compact .grid.three { row-gap: 16mm; }
+.sig-block.compact .grid { line-height: 1.38; }
 .sig-block.compact .sig-date { margin-top: 1mm !important; }
 .sig-date { margin-top: 2mm !important; }
 
