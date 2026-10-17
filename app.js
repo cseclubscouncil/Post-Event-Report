@@ -283,11 +283,12 @@
     /* ----- signatures ----- */
     const person = (name, lines, id) => `
       <div class="person">
-        <div class="sig-line"></div>
         <p class="sig-name">${ph(name, 'Name')}</p>
         ${lines.map((l) => `<p>${l}</p>`).join('')}
         ${id ? `<p class="sig-id">${id}</p>` : ''}
-        <p class="sig-date">Date:&nbsp; <span class="fill d"></span> / <span class="fill d"></span> / <span class="fill y"></span></p>
+        <div class="sign-space"></div>
+        <p class="sign-caption">Signature</p>
+        <p class="sig-date">Date:</p>
       </div>`;
     const submitters = [
       person(nameCase(d.headName), ['Club Head', clubLine], ph(vtu(d.headVtu), 'VTU*****')),

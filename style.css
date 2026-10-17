@@ -251,7 +251,7 @@ h2.section .num { display: inline-block; min-width: 7mm; color: var(--muted); fo
 h3.subhead { margin: 4.5mm 0 1mm; font-size: 11.5pt; font-weight: 600; color: var(--ink); }
 .sheet-body > h3.subhead:first-child, .sheet-body > .rfield:first-child > h3.subhead { margin-top: 0; }
 .rfield { margin: 0 0 2mm; }
-.para { white-space: pre-wrap; text-align: left; }
+.para { white-space: pre-wrap; text-align: justify; hyphens: auto; -webkit-hyphens: auto; }
 .enclosure { margin: 0 0 3mm; font-size: 10pt; font-style: italic; color: var(--muted); }
 .enclosure b { font-style: normal; font-weight: 600; }
 
@@ -277,17 +277,17 @@ table.data { width: 100%; margin: 1.5mm 0 3mm; border-collapse: collapse; font-s
 .sig-block { margin-bottom: 10mm; }
 .signs .grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 18mm; row-gap: 10mm; font-size: 11pt; line-height: 1.45; }
 .signs .grid.three { grid-template-columns: repeat(3, 1fr); column-gap: 10mm; font-size: 10.5pt; }
+/* signature blocks: details, then a clear space to sign above the line */
+.person { display: flex; flex-direction: column; }
+.sign-space { flex: 1 0 auto; min-height: 17mm; border-bottom: .6pt solid var(--ink); }
+.sign-caption { margin-top: 1mm !important; font-size: 7.5pt; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
 /* two rows of submitters: tighten the whole signature page */
-.sig-block.compact { margin-bottom: 8mm; }
+.sig-block.compact { margin-bottom: 5mm; }
 .sig-block.compact h2.section { margin-top: 0; margin-bottom: 3mm; }
-.sig-block.compact .grid { row-gap: 6mm; }
-.sig-block.compact .sig-line { height: 10mm; margin-bottom: 1.5mm; }
-.sig-block.compact .sig-date { margin-top: 1.5mm !important; }
-.sig-date { margin-top: 2.5mm !important; white-space: nowrap; }
-/* writing lines for DD / MM / YYYY, sitting on the text baseline */
-.fill { display: inline-block; height: 1em; border-bottom: .5pt solid var(--ink); vertical-align: baseline; }
-.fill.d { width: 8mm; }
-.fill.y { width: 13mm; }
+.sig-block.compact .grid { row-gap: 5mm; line-height: 1.38; }
+.sig-block.compact .sign-space { min-height: 11mm; }
+.sig-block.compact .sig-date { margin-top: 1mm !important; }
+.sig-date { margin-top: 2mm !important; }
 
 /* ---------- Print ---------- */
 /* margins live inside each sheet, so the page itself has none (this also hides browser headers/footers) */
