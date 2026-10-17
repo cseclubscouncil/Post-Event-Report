@@ -112,7 +112,7 @@
           <input type="number" min="0" name="attended" required>
         </label>
       </div>
-      <p class="hint">Attach the attendance sheet as a hard copy with the printed report.</p>
+      <p class="hint">Upload the attendance sheet in the <b>Annexures</b> section below.</p>
 
       <div class="field">Winners / Awardees Details
         <div id="winners" class="winners"></div>
@@ -158,7 +158,7 @@
 
       <label class="field">Feedback Rating From Participants (out of 5)
         <input type="number" min="0" max="5" step="0.1" name="feedbackRating" class="short" required>
-        <span class="hint">Get this from the CCC website, and attach the feedback hard copy from there.</span>
+        <span class="hint">Get this from the CCC website. Upload the feedback report PDF in the <b>Annexures</b> section below.</span>
       </label>
 
       <div class="field">Event Photos &amp; Post Links <span class="hint inline">(get these from the social media team)</span>
@@ -197,6 +197,63 @@
       <label class="field">Suggestions for Next Time
         <textarea name="suggestions" rows="3" required></textarea>
       </label>
+    </fieldset>
+
+    <!-- 6. EVENT PHOTOGRAPHS -->
+    <fieldset class="card" id="photosCard">
+      <legend>6. Event Photographs</legend>
+      <p class="hint">Add 3 photos of the event, each with a short description. They are printed together on one page.</p>
+      <div class="photo-slots" id="photoSlots">
+        <div class="photo-slot" data-slot="0">
+          <button type="button" class="photo-pick"><span>+ Photo 1</span></button>
+          <input name="photoDesc1" placeholder="Description of photo 1" required maxlength="140">
+        </div>
+        <div class="photo-slot" data-slot="1">
+          <button type="button" class="photo-pick"><span>+ Photo 2</span></button>
+          <input name="photoDesc2" placeholder="Description of photo 2" required maxlength="140">
+        </div>
+        <div class="photo-slot" data-slot="2">
+          <button type="button" class="photo-pick"><span>+ Photo 3</span></button>
+          <input name="photoDesc3" placeholder="Description of photo 3" required maxlength="140">
+        </div>
+      </div>
+      <p class="upload-error" id="photosError" hidden></p>
+    </fieldset>
+
+    <!-- ANNEXURES -->
+    <fieldset class="card" id="annexCard">
+      <legend>Annexures</legend>
+      <p class="hint">Upload clear photos or PDFs of the sheets. Each page is printed on its own A4 page, so no hard copies need to be attached.</p>
+
+      <div class="upload-block" data-section="attendance">
+        <div class="upload-head">
+          <div><b>Attendance Sheet</b> <span class="hint inline">Photos or PDF</span></div>
+          <button type="button" class="btn small upload-add">+ Add files</button>
+        </div>
+        <div class="thumbs"></div>
+        <p class="upload-status" hidden></p>
+      </div>
+
+      <div class="upload-block" data-section="feedback">
+        <div class="upload-head">
+          <div><b>Participant Feedback Report</b> <span class="hint inline">PDF downloaded from the CCC website</span></div>
+          <button type="button" class="btn small upload-add">+ Add files</button>
+        </div>
+        <div class="thumbs"></div>
+        <p class="upload-status" hidden></p>
+      </div>
+
+      <div class="upload-block" data-section="jury">
+        <div class="upload-head">
+          <div><b>Jury Evaluation Sheets</b> <span class="hint inline">Photos or PDF</span></div>
+          <button type="button" class="btn small upload-add">+ Add files</button>
+        </div>
+        <label class="check"><input type="checkbox" name="juryNA" value="yes" id="juryNA"> Not applicable — this event had no jury evaluation</label>
+        <div class="thumbs"></div>
+        <p class="upload-status" hidden></p>
+      </div>
+      <input type="file" id="filePicker" accept="image/*,application/pdf" multiple hidden>
+      <input type="file" id="photoPicker" accept="image/*" hidden>
     </fieldset>
 
     <!-- SUBMITTED BY -->

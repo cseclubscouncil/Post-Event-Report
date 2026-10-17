@@ -145,6 +145,281 @@
     viceBox.lastElementChild.querySelector('input').focus();
   });
 
+  /* ---------- uploads: annexures & event photos ---------- */
+  // Photos are downscaled and PDFs split into page images right here in the browser, then
+  // kept in IndexedDB so a refresh doesn't lose them. Nothing is sent to any server.
+  const SECTIONS = { attendance: 'Attendance Sheet', feedback: 'Participant Feedback Report', jury: 'Jury Evaluation Sheets' };
+  const files = { attendance: [], feedback: [], jury: [] };
+  const photos = [null, null, null];
+  const MAX_SIDE = 2000; // px on the long side: ~300 dpi across the printed area
+  const MAX_PAGES = 30;  // per annexure
+  const PDFJS = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+  let busy = 0;
+  let seq = Date.now();
+
+  const idb = (() => {
+    let dbp;
+    const open = () => (dbp ||= new Promise((res, rej) => {
+      const r = indexedDB.open('event-report', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('files', { keyPath: 'id' });
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    }));
+    const tx = async (mode, fn) => {
+      const db = await open();
+      return new Promise((res, rej) => {
+        const t = db.transaction('files', mode);
+        const req = fn(t.objectStore('files'));
+        t.oncomplete = () => res(req.result);
+        t.onerror = () => rej(t.error);
+      });
+    };
+    const safe = (p) => p.catch(() => undefined); // storage is a convenience; never block the form on it
+    return {
+      put: (rec) => safe(tx('readwrite', (st) => st.put(rec))),
+      del: (id) => safe(tx('readwrite', (st) => st.delete(id))),
+      all: () => safe(tx('readonly', (st) => st.getAll())),
+      clear: () => safe(tx('readwrite', (st) => st.clear())),
+    };
+  })();
+
+  const toJpeg = (canvas) => new Promise((res, rej) =>
+    canvas.toBlob((b) => (b ? res(b) : rej(new Error('encode failed'))), 'image/jpeg', 0.88));
+
+  function whiteCanvas(w, h) {
+    const c = document.createElement('canvas');
+    c.width = Math.round(w);
+    c.height = Math.round(h);
+    const g = c.getContext('2d');
+    g.fillStyle = '#fff'; // transparent PNGs and PDFs print on white
+    g.fillRect(0, 0, c.width, c.height);
+    return [c, g];
+  }
+
+  async function imageToBlob(file) {
+    const url = URL.createObjectURL(file);
+    try {
+      const img = new Image();
+      img.src = url;
+      await img.decode();
+      const k = Math.min(1, MAX_SIDE / Math.max(img.naturalWidth, img.naturalHeight));
+      const [c, g] = whiteCanvas(img.naturalWidth * k, img.naturalHeight * k);
+      g.drawImage(img, 0, 0, c.width, c.height);
+      return await toJpeg(c);
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  let pdfjsReady;
+  const loadPdfJs = () => (pdfjsReady ||= new Promise((res, rej) => {
+    const sc = document.createElement('script');
+    sc.src = PDFJS + 'pdf.min.js';
+    sc.onload = () => {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS + 'pdf.worker.min.js';
+      res(window.pdfjsLib);
+    };
+    sc.onerror = () => { pdfjsReady = null; rej(new Error('PDF reader could not load')); };
+    document.head.appendChild(sc);
+  }));
+
+  async function pdfToBlobs(file) {
+    const pdfjs = await loadPdfJs();
+    const doc = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise;
+    const out = [];
+    for (let i = 1; i <= Math.min(doc.numPages, MAX_PAGES); i++) {
+      const page = await doc.getPage(i);
+      const base = page.getViewport({ scale: 1 });
+      const vp = page.getViewport({ scale: MAX_SIDE / Math.max(base.width, base.height) });
+      const [c, g] = whiteCanvas(vp.width, vp.height);
+      await page.render({ canvasContext: g, viewport: vp }).promise;
+      out.push(await toJpeg(c));
+    }
+    doc.destroy();
+    return out;
+  }
+
+  const isPdf = (f) => f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
+  const blockFor = (section) => document.querySelector(`.upload-block[data-section="${section}"]`);
+
+  function setStatus(section, msg, isError) {
+    const el = blockFor(section).querySelector('.upload-status');
+    el.hidden = !msg;
+    el.textContent = msg;
+    el.classList.toggle('error', !!isError);
+  }
+
+  async function addFiles(section, list) {
+    list = [...list];
+    if (!list.length) return;
+    busy++;
+    setStatus(section, `Processing ${list.length} file${list.length > 1 ? 's' : ''}…`);
+    const failed = [];
+    for (const f of list) {
+      try {
+        const blobs = isPdf(f) ? await pdfToBlobs(f) : [await imageToBlob(f)];
+        for (const [i, blob] of blobs.entries()) {
+          if (files[section].length >= MAX_PAGES) break;
+          const rec = { id: 'f' + (seq++).toString(36), section, order: seq, name: blobs.length > 1 ? `${f.name} · page ${i + 1}` : f.name, blob };
+          idb.put(rec);
+          files[section].push({ ...rec, url: URL.createObjectURL(blob) });
+        }
+      } catch (e) {
+        failed.push(f.name);
+      }
+    }
+    busy--;
+    setStatus(section, failed.length ? `Couldn't read ${failed.join(', ')}. Please upload JPG, PNG or PDF files.` : '', true);
+    renderThumbs(section);
+    update();
+  }
+
+  function removeFile(section, id) {
+    const i = files[section].findIndex((f) => f.id === id);
+    if (i < 0) return;
+    URL.revokeObjectURL(files[section][i].url);
+    files[section].splice(i, 1);
+    idb.del(id);
+    renderThumbs(section);
+    update();
+  }
+
+  function renderThumbs(section) {
+    blockFor(section).querySelector('.thumbs').replaceChildren(...files[section].map((f, i) => {
+      const el = document.createElement('div');
+      el.className = 'thumb';
+      el.title = f.name;
+      el.innerHTML = '<img alt=""><span class="thumb-no"></span><button type="button" class="thumb-remove" aria-label="Remove page">×</button>';
+      el.querySelector('img').src = f.url;
+      el.querySelector('.thumb-no').textContent = i + 1;
+      el.querySelector('.thumb-remove').addEventListener('click', () => removeFile(section, f.id));
+      return el;
+    }));
+  }
+
+  const filePicker = $('#filePicker');
+  let pickTarget = null;
+  document.querySelectorAll('.upload-block').forEach((b) => {
+    b.querySelector('.upload-add').addEventListener('click', () => {
+      pickTarget = b.dataset.section;
+      filePicker.value = '';
+      filePicker.click();
+    });
+    // desktop: drop files straight onto a section
+    b.addEventListener('dragover', (e) => { e.preventDefault(); b.classList.add('drag'); });
+    b.addEventListener('dragleave', () => b.classList.remove('drag'));
+    b.addEventListener('drop', (e) => {
+      e.preventDefault();
+      b.classList.remove('drag');
+      addFiles(b.dataset.section, e.dataTransfer.files);
+    });
+  });
+  filePicker.addEventListener('change', () => { if (pickTarget) addFiles(pickTarget, filePicker.files); });
+
+  /* event photos: exactly three, one per slot */
+  const photoPicker = $('#photoPicker');
+  const photosError = $('#photosError');
+  let photoTarget = 0;
+  document.querySelectorAll('.photo-slot').forEach((slot) => {
+    slot.querySelector('.photo-pick').addEventListener('click', () => {
+      photoTarget = +slot.dataset.slot;
+      photoPicker.value = '';
+      photoPicker.click();
+    });
+  });
+  photoPicker.addEventListener('change', async () => {
+    const f = photoPicker.files[0];
+    const slot = photoTarget;
+    if (!f) return;
+    busy++;
+    photosError.hidden = false;
+    photosError.classList.remove('error');
+    photosError.textContent = 'Processing photo…';
+    try {
+      const blob = await imageToBlob(f);
+      if (photos[slot]) URL.revokeObjectURL(photos[slot].url);
+      const rec = { id: 'photo' + slot, section: 'photo', slot, name: f.name, blob };
+      idb.put(rec);
+      photos[slot] = { ...rec, url: URL.createObjectURL(blob) };
+      photosError.hidden = true;
+      photosError.textContent = '';
+    } catch (e) {
+      photosError.classList.add('error');
+      photosError.textContent = `Couldn't read ${f.name}. Please choose a JPG or PNG photo.`;
+    }
+    busy--;
+    renderPhotos();
+    update();
+  });
+
+  function renderPhotos() {
+    document.querySelectorAll('.photo-slot').forEach((slot) => {
+      const i = +slot.dataset.slot;
+      const btn = slot.querySelector('.photo-pick');
+      btn.classList.toggle('has', !!photos[i]);
+      btn.style.backgroundImage = photos[i] ? `url("${photos[i].url}")` : '';
+      btn.querySelector('span').textContent = photos[i] ? 'Change photo' : `+ Photo ${i + 1}`;
+    });
+  }
+
+  async function restoreUploads() {
+    const recs = (await idb.all()) || [];
+    recs.sort((a, b) => (a.order || 0) - (b.order || 0));
+    for (const r of recs) {
+      const item = { ...r, url: URL.createObjectURL(r.blob) };
+      if (r.section === 'photo') photos[r.slot] = item;
+      else if (files[r.section]) files[r.section].push(item);
+    }
+    Object.keys(files).forEach(renderThumbs);
+    renderPhotos();
+    update();
+  }
+
+  function clearUploads() {
+    Object.values(files).forEach((list) => { list.forEach((f) => URL.revokeObjectURL(f.url)); list.length = 0; });
+    photos.forEach((p, i) => { if (p) URL.revokeObjectURL(p.url); photos[i] = null; });
+    idb.clear();
+    Object.keys(files).forEach((sct) => { renderThumbs(sct); setStatus(sct, ''); });
+    renderPhotos();
+    photosError.hidden = true;
+  }
+
+  // the first required upload that's missing, as [element to show, message]
+  function uploadProblem(d) {
+    if (!files.attendance.length) return [blockFor('attendance'), 'Upload the attendance sheet (photos or PDF).'];
+    if (!files.feedback.length) return [blockFor('feedback'), 'Upload the participant feedback report PDF.'];
+    if (!d.juryNA.length && !files.jury.length) return [blockFor('jury'), 'Upload the jury evaluation sheets, or tick "Not applicable".'];
+    const missing = photos.findIndex((p) => !p);
+    if (missing >= 0) return [$('#photosCard'), `Add all 3 event photos (photo ${missing + 1} is missing).`];
+    return null;
+  }
+
+  function markUploads(d) {
+    const checked = form.classList.contains('checked');
+    const na = !!d.juryNA.length;
+    Object.keys(files).forEach((sct) => {
+      const block = blockFor(sct);
+      const off = sct === 'jury' && na;
+      block.classList.toggle('na', off);
+      block.classList.toggle('invalid', checked && !off && !files[sct].length);
+    });
+    document.querySelectorAll('.photo-slot').forEach((slot) => {
+      slot.classList.toggle('invalid', checked && !photos[+slot.dataset.slot]);
+    });
+  }
+
+  // report pages reuse one <img> per upload, so re-rendering on every keystroke doesn't re-decode images
+  function imgFor(id) {
+    const item = photos.find((p) => p && p.id === id) || Object.values(files).flat().find((f) => f.id === id);
+    if (!item) return document.createElement('span');
+    if (!item.el || item.el.src !== item.url) {
+      item.el = new Image();
+      item.el.alt = '';
+      item.el.src = item.url;
+    }
+    return item.el;
+  }
+
   /* ---------- report ---------- */
   // The report is built as a list of blocks, then poured into fixed A4 sheets
   // (see paginate) so the preview shows exactly the pages that will print.
@@ -209,6 +484,38 @@
       <div class="cover-signs">${coverSigners.join('')}</div>
       </div>`;
 
+    /* ----- annexures (numbered in order, jury only when applicable) ----- */
+    const roman = ['I', 'II', 'III'];
+    const annexes = Object.keys(SECTIONS)
+      .filter((sct) => sct !== 'jury' || !d.juryNA.length)
+      .map((sct, i) => ({ section: sct, numeral: roman[i], title: SECTIONS[sct], items: files[sct] }));
+    const ref = (sct) => annexes.find((a) => a.section === sct)?.numeral;
+    const annexPages = annexes.flatMap((a) => {
+      const pages = a.items.length ? a.items : [null];
+      return pages.map((f, i) => `
+        <div class="annex-head">
+          <div>
+            <p class="label">Annexure ${a.numeral}</p>
+            <p class="annex-title">${a.title}</p>
+          </div>
+          <p class="annex-page">${pages.length > 1 ? `Page ${i + 1} of ${pages.length}` : ''}</p>
+        </div>
+        <div class="annex-frame">${f ? `<img data-ref="${f.id}" alt="">` : '<span class="placeholder">Not uploaded yet</span>'}</div>`);
+    });
+
+    /* ----- event photographs: one page, three figures ----- */
+    const fig = (i) => {
+      const p = photos[i];
+      const desc = d[`photoDesc${i + 1}`];
+      return `<figure class="fig">
+        <div class="fig-frame">${p ? `<img data-ref="${p.id}" alt="">` : `<span class="placeholder">Photo ${i + 1}</span>`}</div>
+        <figcaption><b>Figure ${i + 1}.</b> ${desc ? esc(desc.charAt(0).toUpperCase() + desc.slice(1)) : '<span class="placeholder">Description</span>'}</figcaption>
+      </figure>`;
+    };
+    const photosPage = `
+      <h2 class="section"><span class="num">6.</span>Event Photographs</h2>
+      <div class="figs">${fig(0)}<div class="fig-row">${fig(1)}${fig(2)}</div></div>`;
+
     /* ----- content blocks ----- */
     const section = (n, title) => ({ html: `<h2 class="section" data-keep><span class="num">${n}.</span>${title}</h2>` });
     const sub = (title) => ({ html: `<h3 class="subhead" data-keep>${title}</h3>` });
@@ -251,8 +558,9 @@
         ['Registered Participants', val(d.registered)],
         ['Actual Participants Attended', val(d.attended)],
       ]),
-      enclosure('Attendance sheet (hard copy)'),
+      enclosure(`Attendance sheet — Annexure ${ref('attendance')}`),
       winnersBlock,
+      ...(ref('jury') ? [enclosure(`Jury evaluation sheets — Annexure ${ref('jury')}`)] : []),
 
       section(2, 'Event Execution'),
       textField('Brief Report of What Happened', d.briefReport),
@@ -267,7 +575,7 @@
       section(4, 'Outcomes &amp; Proof'),
       textField('Key Outcomes Achieved', d.outcomes),
       facts([['Feedback Rating (out of 5)', d.feedbackRating ? esc(d.feedbackRating) + ' / 5' : val('')]]),
-      enclosure('Participant feedback report from the CCC website (hard copy)'),
+      enclosure(`Participant feedback report from the CCC website — Annexure ${ref('feedback')}`),
       sub('Event Photos &amp; Post Links'),
       { html: `<table class="kv links">${links.map(([k, u]) => `<tr><th>${k}</th><td>${u ? esc(u) : val('')}</td></tr>`).join('')}</table>` },
       facts([
@@ -320,7 +628,7 @@
       </div>` },
     ];
 
-    return { footer, cover, blocks, signs };
+    return { footer, cover, blocks, photosPage, signs, annexPages };
   }
 
   /* ---------- pagination ---------- */
@@ -335,7 +643,7 @@
     return t.content.firstElementChild;
   };
 
-  function paginate({ footer, cover, blocks, signs }) {
+  function paginate({ footer, cover, blocks, photosPage, signs, annexPages }) {
     measure.innerHTML = '';
     const newSheet = (cls) => {
       const sheet = toNode(`<section class="sheet ${cls}"><div class="sheet-body"></div><footer class="sheet-foot">${footer}</footer></section>`);
@@ -390,7 +698,10 @@
 
     newSheet('cover').innerHTML = cover;
     pour(blocks, 'content');
+    newSheet('photos').innerHTML = photosPage;
     pour(signs, 'signs');
+    annexPages.forEach((html) => { newSheet('annex').innerHTML = html; });
+    measure.querySelectorAll('img[data-ref]').forEach((ph) => ph.replaceWith(imgFor(ph.dataset.ref)));
 
     const sheets = [...measure.children];
     sheets.forEach((sh, i) => {
@@ -427,6 +738,7 @@
     wordCount.textContent = `${n} words · aim for 250–400`;
     wordCount.className = 'counter ' + (n === 0 ? '' : n >= 250 && n <= 400 ? 'ok' : 'warn');
 
+    markUploads(d);
     paginate(buildReport(d));
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); } catch (e) { /* storage unavailable */ }
   }
@@ -443,7 +755,7 @@
   window.addEventListener('resize', fitPreview);
 
   /* ---------- actions ---------- */
-  function download() {
+  async function download() {
     form.classList.add('checked');
     if (noWinners.checked) { winners = []; renderWinners(); update(); }
     if (!form.checkValidity()) {
@@ -454,12 +766,26 @@
       alert('Please fill all required fields (marked in red) before downloading.');
       return;
     }
+    if (busy) {
+      alert('Your files are still being processed. Please wait a moment and try again.');
+      return;
+    }
     const d = readForm();
+    update();
+    const problem = uploadProblem(d);
+    if (problem) {
+      document.body.classList.remove('show-preview');
+      problem[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+      alert(problem[1]);
+      return;
+    }
     const n = words(d.briefReport);
     if ((n < 250 || n > 400) && !confirm(`The brief report has ${n} words; 250–400 is expected.\n\nDownload anyway?`)) return;
 
     const prevTitle = document.title;
     document.title = `Event Report - ${d.clubName} - ${titleCase(d.eventName)}`.replace(/[\\/:*?"<>|]/g, '');
+    // make sure every photo and scanned page is decoded before the print snapshot
+    await Promise.all([...report.querySelectorAll('img')].map((img) => img.decode().catch(() => {})));
     window.print();
     document.title = prevTitle;
   }
@@ -475,6 +801,7 @@
     viceHeads = [{ name: '', vtu: '' }];
     renderWinners();
     renderVices();
+    clearUploads();
     try { localStorage.removeItem(STORAGE_KEY); } catch (e) { /* ignore */ }
     update();
   });
@@ -494,6 +821,7 @@
   renderVices();
   update();
   fitPreview();
+  restoreUploads();
   // re-measure pages once the bundled report font has loaded
   if (document.fonts) document.fonts.ready.then(update);
 })();
