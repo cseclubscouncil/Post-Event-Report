@@ -594,8 +594,6 @@
         <p class="sig-name">${ph(name, 'Name')}</p>
         ${lines.map((l) => `<p>${l}</p>`).join('')}
         ${id ? `<p class="sig-id">${id}</p>` : ''}
-        <div class="sign-space"></div>
-        <p class="sign-caption">Signature</p>
         <p class="sig-date">Date:</p>
       </div>`;
     const submitters = [

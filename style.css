@@ -246,7 +246,7 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--a
 .cover .title-block { margin: 26mm 0 20mm; text-align: center; }
 .cover h1 { margin: 0; font-size: 26pt; font-weight: 600; letter-spacing: .06em; line-height: 1.1; color: var(--navy); }
 .cover .ornament { width: 14mm; height: .8pt; margin: 6mm auto; background: var(--navy); }
-.cover .club-title { margin: 0; font-size: 15pt; }
+.cover .club-title { margin: 0; font-size: 14pt; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
 h2.cap { margin: 0 0 2.5mm; color: var(--navy); }
 
 /* label / value pairs: no rules, just alignment */
@@ -337,15 +337,13 @@ table.data { width: 100%; margin: 1.5mm 0 3mm; border-collapse: collapse; font-s
 .sig-block { margin-bottom: 10mm; }
 .signs .grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 18mm; row-gap: 10mm; font-size: 11pt; line-height: 1.45; }
 .signs .grid.three { grid-template-columns: repeat(3, 1fr); column-gap: 10mm; font-size: 10.5pt; }
-/* signature blocks: details, then a clear space to sign above the line */
-.person { display: flex; flex-direction: column; }
-.sign-space { flex: 1 0 auto; min-height: 17mm; border-bottom: .6pt solid var(--ink); }
-.sign-caption { margin-top: 1mm !important; font-size: 7.5pt; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+/* signature blocks: plain white space above each name to sign in */
+.signs .person { padding-top: 16mm; }
 /* two rows of submitters: tighten the whole signature page */
 .sig-block.compact { margin-bottom: 5mm; }
 .sig-block.compact h2.section { margin-top: 0; margin-bottom: 3mm; }
 .sig-block.compact .grid { row-gap: 5mm; line-height: 1.38; }
-.sig-block.compact .sign-space { min-height: 11mm; }
+.sig-block.compact .person { padding-top: 12mm; }
 .sig-block.compact .sig-date { margin-top: 1mm !important; }
 .sig-date { margin-top: 2mm !important; }
 
