@@ -539,7 +539,7 @@
       ? {
           units: winnerRows,
           minUnits: 1,
-          render: (rows, first) => `<div class="rfield">${first ? '<h3 class="subhead">Winners / Awardees Details</h3>' : ''}
+          render: (rows, first) => `<div class="rfield">${first ? '<h3 class="subhead">Winners and Awardees</h3>' : ''}
             <table class="data">
               <thead><tr><th>S.No</th><th>Position / Award</th><th>VTU No.</th><th>Name</th><th>Dept.</th><th>Year</th></tr></thead>
               <tbody>${rows.join('')}</tbody>
@@ -556,15 +556,15 @@
       section(1, 'Participation Details'),
       facts([
         ['Registered Participants', val(d.registered)],
-        ['Actual Participants Attended', val(d.attended)],
+        ['Participants Attended', val(d.attended)],
       ]),
       enclosure(`Attendance sheet — Annexure ${ref('attendance')}`),
       winnersBlock,
       ...(ref('jury') ? [enclosure(`Jury evaluation sheets — Annexure ${ref('jury')}`)] : []),
 
       section(2, 'Event Execution'),
-      textField('Brief Report of What Happened', d.briefReport),
-      textField('Any Deviation from Proposed Agenda', d.deviation),
+      textField('Event Summary', d.briefReport),
+      textField('Deviations from the Proposed Agenda', d.deviation),
 
       section(3, 'Financial Statement'),
       facts([
@@ -573,10 +573,10 @@
       ]),
 
       section(4, 'Outcomes &amp; Proof'),
-      textField('Key Outcomes Achieved', d.outcomes),
-      facts([['Feedback Rating (out of 5)', d.feedbackRating ? esc(d.feedbackRating) + ' / 5' : val('')]]),
+      textField('Key Outcomes', d.outcomes),
+      facts([['Average Feedback Rating', d.feedbackRating ? esc(d.feedbackRating) + ' / 5' : val('')]]),
       enclosure(`Participant feedback report from the CCC website — Annexure ${ref('feedback')}`),
-      sub('Event Photos &amp; Post Links'),
+      sub('Event Media Links'),
       { html: `<table class="kv links">${links.map(([k, u]) => `<tr><th>${k}</th><td>${u ? esc(u) : val('')}</td></tr>`).join('')}</table>` },
       facts([
         ['Media Coverage', `${check(media.includes('Instagram'), 'Instagram')}${check(media.includes('LinkedIn'), 'LinkedIn')}${check(media.includes('Website'), 'Website')}`],
@@ -584,8 +584,8 @@
       ]),
 
       section(5, 'Learnings &amp; Suggestions'),
-      textField('Challenges Faced', d.challenges),
-      textField('Suggestions for Next Time', d.suggestions),
+      textField('Challenges Encountered', d.challenges),
+      textField('Recommendations for Future Events', d.suggestions),
     ];
 
     /* ----- signatures ----- */
